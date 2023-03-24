@@ -1,10 +1,5 @@
 {
   "roles": [
-    {
-      "name": "Dummy role",
-      "id": "DUMMY_ROLE",
-      "params": []
-    }
   ],
   "environments": {
     "default": {
@@ -17,17 +12,10 @@
       "wsRPC": "wss://mainnet.eth.aragon.network/ws",
       "network": "mainnet"
     },
-    "rinkeby": {
-      "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
+    "xdai": {
+      "registry": "0xaafca6b0c89521752e559650206d7c925fd0e530",
       "appName": "surgery.open.aragonpm.eth",
-      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
-      "network": "rinkeby"
-    },
-    "staging": {
-      "registry": "0xfe03625ea880a8cba336f9b5ad6e15b0a3b5a939",
-      "appName": "surgery.open.aragonpm.eth",
-      "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
-      "network": "rinkeby"
+      "network": "xdai"
     }
   },
   "path": "contracts/Surgery.sol"

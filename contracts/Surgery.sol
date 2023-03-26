@@ -3,13 +3,15 @@ pragma solidity ^0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
 
+import "hardhat/console.sol";
 
 contract Surgery is AragonApp, IForwarder {
 
     string private constant ERROR_IS_NOT_INITIALIZABLE = "SURGERY_IS_NOT_INITIALIZABLE";
     string private constant ERROR_OFFSET_TOO_BIG = "SURGERY_OFFSET_TOO_BIG";
     string private constant ERROR_SIZE_TOO_BIG = "SURGERY_SIZE_TOO_BIG";
-    string private constant ERROR_CANNOT_FORWARD = "ERROR_CANNOT_FORWARD";
+    string private constant ERROR_VALUE_TOO_BIG = "SURGERY_VALUE_TOO_BIG";
+    string private constant ERROR_CANNOT_FORWARD = "SURGERY_CANNOT_FORWARD";
 
     event PerformedSurgery(address indexed surgeon, uint256 slot, uint256 value);
     event PerformedCallScript(address indexed surgeon, bytes script);
@@ -32,7 +34,8 @@ contract Surgery is AragonApp, IForwarder {
     function operate(uint256 slot, uint256 value, uint256 offset, uint256 size) isInitialized external {
         require(offset < 32, ERROR_OFFSET_TOO_BIG);
         require(size <= 32 && offset + size <= 32, ERROR_SIZE_TOO_BIG); // We check both because of a possible overflow
-
+        // When size is 32, 2**(size * 8) overflows, but it's still valid as `2**(32 * 8) - 1` overflow back to the maximum possible value.
+        require(value <= 2 ** (size * 8) - 1, ERROR_VALUE_TOO_BIG); 
         assembly {
             let originalValue := sload(slot)
             let updateMask := sub(exp(2, mul(size, 8)), 1) // Create the mask based on the size in bytes

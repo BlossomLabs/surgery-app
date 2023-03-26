@@ -123,6 +123,46 @@ contract('Surgery', ([appManager, user]) => {
       await assertRevert(surgery.operate(slot, value, 0, 0, { from: user }), 'INIT_NOT_INITIALIZED');
     });
 
+    it('should revert when the offset is too big', async () => {
+      const slot = 1;
+      const newValue = 42;
+    
+      await assertRevert(
+        performSurgery(slot, newValue, 32, 1),
+        'SURGERY_OFFSET_TOO_BIG'
+      );
+    });
+    
+    it('should revert when the size is too big', async () => {
+      const slot = 1;
+      const newValue = 42;
+    
+      await assertRevert(
+        performSurgery(slot, newValue, 0, 33),
+        'SURGERY_SIZE_TOO_BIG'
+      );
+    });
+    
+    it('should revert when the offset + size is too big', async () => {
+      const slot = 1;
+      const newValue = 42;
+    
+      await assertRevert(
+        performSurgery(slot, newValue, 16, 17),
+        'SURGERY_SIZE_TOO_BIG'
+      );
+    });
+    
+    it('should revert when the value is too big for the specified size', async () => {
+      const slot = 1;
+      const newValue = 1 << 8; // A value too big to fit into 1 byte
+    
+      await assertRevert(
+        performSurgery(slot, newValue, 20, 1),
+        'SURGERY_VALUE_TOO_BIG'
+      );
+    });
+
     it('should forward call script', async () => {
       const action = { to: executionTarget.address, calldata: executionTarget.contract.methods.execute().encodeABI() }
       const callScript = encodeCallScript([action])
@@ -144,7 +184,7 @@ contract('Surgery', ([appManager, user]) => {
       await dao.setApp(APP_BASES_NAMESPACE, PATIENT_APP_ID, surgeryBase.address, { from: appManager });
       surgery = await Surgery.at(patient2.address);
       const callScript = EMPTY_CALLS_SCRIPT;
-      await assertRevert(surgery.forward(callScript, { from: user }), 'ERROR_CANNOT_FORWARD');
+      await assertRevert(surgery.forward(callScript, { from: user }), 'SURGERY_CANNOT_FORWARD');
     });
   })
 })

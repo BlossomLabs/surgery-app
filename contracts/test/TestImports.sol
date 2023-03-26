@@ -5,6 +5,8 @@ import "@aragon/os/contracts/kernel/Kernel.sol";
 import "@aragon/os/contracts/factory/DAOFactory.sol";
 import "@aragon/os/contracts/factory/EVMScriptRegistryFactory.sol";
 
+import "@1hive/contract-helpers-test/contracts/0.4/misc/ExecutionTarget.sol";
+
 // You might think this file is a bit odd, but let me explain.
 // We only use some contracts in our tests, which means Truffle
 // will not compile it for us, because it is from an external

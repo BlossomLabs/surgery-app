@@ -6,15 +6,16 @@ import "@aragon/os/contracts/common/IForwarder.sol";
 
 contract Patient is AragonApp {
 
-    bytes32 public constant ERROR_CANNOT_INITIALIZE = keccak256("ERROR_CANNOT_INITIALIZE");
-    bytes32 public constant ERROR_CANNOT_FORWARD = keccak256("ERROR_CANNOT_FORWARD");
-
-    bytes32 public foo = 0xdeadbeef;
-    address public bar = 0xdeadbeef;
-    uint8 public baz = 33;
-
+    bytes32 public foo;
+    address public bar;
+    uint8 public baz;
+    uint88 public qux;
 
     function initialize() onlyInit public {
+        foo = keccak256("foo");
+        bar = 0xDEADbEeF000000000000000000000000DeaDbeEf;
+        baz = 33;
+        qux = 88;
         initialized();
     }
 }

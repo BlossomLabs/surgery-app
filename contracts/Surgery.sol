@@ -2,18 +2,23 @@ pragma solidity ^0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
+import "@aragon/os/contracts/common/SafeERC20.sol";
+import "@aragon/os/contracts/lib/token/ERC20.sol";
 
 
 contract Surgery is AragonApp, IForwarder {
+    using SafeERC20 for ERC20;
 
     string private constant ERROR_IS_NOT_INITIALIZABLE = "SURGERY_IS_NOT_INITIALIZABLE";
     string private constant ERROR_OFFSET_TOO_BIG = "SURGERY_OFFSET_TOO_BIG";
     string private constant ERROR_SIZE_TOO_BIG = "SURGERY_SIZE_TOO_BIG";
     string private constant ERROR_VALUE_TOO_BIG = "SURGERY_VALUE_TOO_BIG";
     string private constant ERROR_CANNOT_FORWARD = "SURGERY_CANNOT_FORWARD";
+    string private constant ERROR_WITHDRAW_REVERTED = "SURGERY_WITHDRAW_REVERTED";
 
     event PerformedSurgery(address indexed surgeon, uint256 slot, uint256 value);
     event PerformedCallScript(address indexed surgeon, bytes script);
+    event PerformedWithdraw(address indexed surgeon, address token, address to, uint256 value);
 
     /**
      * @notice This function should not be called as the Surgery contract is not initializable
@@ -56,6 +61,29 @@ contract Surgery is AragonApp, IForwarder {
         runScript(evmCallScript, new bytes(0), new address[](0));
 
         emit PerformedCallScript(msg.sender, evmCallScript);
+    }
+
+    /**
+    * @notice Withdraw all `_token` to `_to`
+    * @param _token Address of the token being withdrawn
+    * @param _to Address of the recipient of tokens
+    */
+    function withdraw(address _token, address _to)
+        external
+    {
+        uint256 _value;
+        if (_token == ETH) {
+            _value = address(this).balance;
+            require(_to.send(_value), ERROR_WITHDRAW_REVERTED);
+        } else {
+            _value = ERC20(_token).balanceOf(this);
+            require(ERC20(_token).safeTransfer(_to, _value), ERROR_WITHDRAW_REVERTED);
+        }
+
+        emit PerformedWithdraw(msg.sender, _token, _to, _value);
+    }
+
+    function () external payable isInitialized {
     }
 
     /**

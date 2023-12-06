@@ -1,21 +1,23 @@
 /* global artifacts contract beforeEach it assert */
 
-const { injectWeb3, injectArtifacts, bn } = require('@1hive/contract-helpers-test')
+const { injectWeb3, injectArtifacts, bn, ZERO_ADDRESS } = require('@1hive/contract-helpers-test')
 const { newDao, installNewApp, encodeCallScript, EMPTY_CALLS_SCRIPT } = require('@1hive/contract-helpers-test/src/aragon-os')
 const { assertRevert, assertBn } = require('@1hive/contract-helpers-test/src/asserts')
 
 injectWeb3(web3)
 injectArtifacts(artifacts)
 
+const ETH = ZERO_ADDRESS
 const APP_BASES_NAMESPACE = '0xf1f3eb40f5bc1ad1344716ced8b8a0431d840b5783aea1fd01786bc26f35ac0f'
 
 const Surgery = artifacts.require('Surgery.sol')
 const Patient = artifacts.require('Patient.sol')
 const AppProxyUpgradeable = artifacts.require('AppProxyUpgradeable.sol')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
+const TokenMock = artifacts.require('TokenMock')
 
 contract('Surgery', ([appManager, user]) => {
-  let dao, surgeryBase, patientBase, patient, executionTarget
+  let dao, surgeryBase, patientBase, patient, executionTarget, token
 
   const PATIENT_APP_ID = '0x1234123412341234123412341234123412341234123412341234123412341234'
   const SURGERY_APP_ID = '0x1234123412341234123412341234123412341234123412341234123412341235'
@@ -185,6 +187,59 @@ contract('Surgery', ([appManager, user]) => {
       surgery = await Surgery.at(patient2.address);
       const callScript = EMPTY_CALLS_SCRIPT;
       await assertRevert(surgery.forward(callScript, { from: user }), 'SURGERY_CANNOT_FORWARD');
+    });
+
+    describe('Withdraws', () => {
+      before(async () => {
+        token = await TokenMock.new(appManager, 10000)
+      })
+
+      context('ETH', () => {
+        it('should withdraw all ETH', async () => {
+          const withdrawValue = 10
+
+          await surgery.sendTransaction({ from: appManager, value: withdrawValue })
+          const testAccount = '0xbeeF000000000000000000000000000000000000'
+          const initialBalance = await web3.eth.getBalance(testAccount)
+
+          // Withdraw
+          const tx = await surgery.withdraw(ETH, testAccount, { from: user })
+
+          assertBn(await web3.eth.getBalance(testAccount), bn(initialBalance).add(bn(withdrawValue)), 'should have sent eth')
+          assertBn(await web3.eth.getBalance(surgery.address), 0, 'should have been depleated of eth')
+
+          assert.equal(tx.logs.length, 1, 'should have emitted one event');
+          assert.equal(tx.logs[0].event, 'PerformedWithdraw', 'event should be PerformedWithdraw');
+          assert.equal(tx.logs[0].args.surgeon, user, 'event surgeon should be the sender');
+          assert.equal(tx.logs[0].args.token, ETH, 'event token should be the expected value');
+          assert.equal(tx.logs[0].args.to, testAccount, 'event to should be the expected value');
+          assert.equal(tx.logs[0].args.value.toNumber(), withdrawValue, 'event value should be the expected value');
+        });
+      });
+
+      context('ERC20', () => {
+        it('should withdraw all ERC20', async () => {
+
+          const withdrawValue = 10
+
+          await token.transfer(surgery.address, withdrawValue, { from: appManager })
+          const testAccount = '0xbeeF000000000000000000000000000000000000'
+          const initialBalance = await token.balanceOf(testAccount)
+
+          // Withdraw
+          const tx = await surgery.withdraw(token.address, testAccount, { from: user })
+
+          assertBn(await token.balanceOf(testAccount), bn(initialBalance).add(bn(withdrawValue)), 'should have sent tokens')
+          assertBn(await token.balanceOf(surgery.address), 0, 'should have been depleated of tokens')
+
+          assert.equal(tx.logs.length, 1, 'should have emitted one event');
+          assert.equal(tx.logs[0].event, 'PerformedWithdraw', 'event should be PerformedWithdraw');
+          assert.equal(tx.logs[0].args.surgeon, user, 'event surgeon should be the sender');
+          assert.equal(tx.logs[0].args.token, token.address, 'event token should be the expected value');
+          assert.equal(tx.logs[0].args.to, testAccount, 'event to should be the expected value');
+          assert.equal(tx.logs[0].args.value.toNumber(), withdrawValue, 'event value should be the expected value');
+        });
+      });
     });
   })
 })

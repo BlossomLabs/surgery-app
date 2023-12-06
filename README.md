@@ -16,6 +16,7 @@ Features
 What a Surgeon can do with this app:
 -   Surgery: Update a specific portion of a storage value at a given slot without affecting surrounding data.
 -   Phone Calls: Forward an EVM call script through the contract.
+-   Emergency Kit: Recover the app's funds in case of emergency.
 
 Installation
 ------------
@@ -87,7 +88,6 @@ Example (using [EVMcrispr](https://evmcrispr.com)):
 load aragonos as ar
 
 ar:connect token-manager voting (
-  set $forwardABI forward(bytes)
   set $token token-manager::token()
 
   upgrade token-manager <surgery-app-address>
@@ -95,6 +95,31 @@ ar:connect token-manager voting (
     exec $token enableTransfers(bool) true
   )
   upgrade token-manager latest
+)
+```
+
+### Recovering funds
+
+To recover the app's funds in case of not knowing how much tokens there will be in the moment of the vote execution,
+call the `withdraw` function with the following parameters:
+
+-  `token`: The address of the token to be withdrawn.
+-  `to`: The address where the funds will be sent.
+
+Example (using [EVMcrispr](https://evmcrispr.com)):
+
+```text
+# Recover ETH and DAI from the voting app
+
+load aragonos as ar
+
+ar:connect token-manager voting (
+  set $recoveryAddress <your-recovery-address>
+
+  upgrade voting <surgery-app-address>
+  exec voting withdraw ETH $recoveryAddress
+  exec voting withdraw @token(DAI) $recoveryAddress
+  upgrade voting latest
 )
 ```
 
@@ -106,6 +131,7 @@ The Surgery app emits the following events:
 
 -   `PerformedSurgery`: Emitted when a surgery operation is performed, including the surgeon's address, storage slot, and updated value.
 -   `PerformedCallScript`: Emitted when an EVM call script is forwarded through the contract, including the surgeon's address and the executed script.
+-   `PerformedTransfer`: Emitted when the app's funds are transferred, including the surgeon's address, the recovery address, and the amount transferred.
 
 Contributing
 ------------
